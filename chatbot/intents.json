@@ -1,0 +1,24 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": ["hello", "hi", "hey", "is anyone there", "good day", "whats up"],
+      "responses": ["Hello! Welcome to our commercial platform. How can I assist you today?", "Hi there! How can I help you with our services?"]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": ["bye", "see you later", "goodbye", "i am leaving"],
+      "responses": ["Thank you for reaching out. Have a great day!", "Goodbye! Let us know if you need anything else."]
+    },
+    {
+      "tag": "pricing",
+      "patterns": ["how much does it cost", "pricing plans", "subscription fees", "what is the price"],
+      "responses": ["Our standard plan starts at $19/month, and the premium enterprise plan is $49/month. Would you like a detailed breakdown?"]
+    },
+    {
+      "tag": "support",
+      "patterns": ["i need help", "customer service", "open a ticket", "technical support", "contact human"],
+      "responses": ["You can open a support ticket by emailing services@codealpha.tech.", "Our support team is available 24/7. Please describe your issue clearly."]
+    }
+  ]
+}
