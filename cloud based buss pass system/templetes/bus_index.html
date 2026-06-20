@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud-Native Digital Bus Pass System</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --panel-bg: rgba(255, 255, 255, 0.95);
+            --primary: #0f172a;
+            --accent: #0284c7;
+            --accent-hover: #0369a1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body { 
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+            background: var(--bg-gradient); 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dashboard-container {
+            width: 1000px;
+            max-width: 95%;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+        }
+
+        @media(max-width: 850px) { 
+            .dashboard-container { grid-template-columns: 1fr; } 
+        }
+        
+        .card { 
+            background: var(--panel-bg); 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+        
+        h2 { 
+            margin-top: 0; 
+            margin-bottom: 20px;
+            color: var(--primary); 
+            font-size: 22px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-weight: 700;
+        }
+
+        label { 
+            display: block; 
+            margin: 18px 0 6px; 
+            font-weight: 600; 
+            font-size: 14px;
+            color: var(--primary);
+        }
+        
+        input, select { 
+            width: 100%; 
+            padding: 14px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 10px; 
+            box-sizing: border-box; 
+            outline: none; 
+            font-size: 14px;
+            transition: all 0.2s; 
+            background: #f8fafc;
+        }
+        
+        input:focus, select:focus { 
+            border-color: var(--accent); 
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(135deg, var(--accent) 0%, #0369a1 100%);
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            font-size: 15px;
+            cursor: pointer; 
+            margin-top: 25px; 
+            transition: all 0.2s; 
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(2, 132, 199, 0.4);
+        }
+        
+        button:active { transform: translateY(1px); }
+
+        /* Infrastructure Analytics Header */
+        .metric-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 20px; 
+        }
+
+        @media(max-width: 550px) { .metric-grid { grid-template-columns: 1fr; } }
+
+        .metric-box { 
+            background: #f8fafc; 
+            padding: 18px; 
+            border-radius: 12px; 
+            text-align: center; 
+            border: 1px solid var(--border-color); 
+        }
+
+        .metric-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .metric-val { 
+            font-size: 24px; 
+            font-weight: 700; 
+            color: var(--accent); 
+            margin-top: 6px; 
+        }
+        
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13.5px;
+            color: var(--text-muted);
+            margin-top: 15px;
+            background: rgba(2, 132, 199, 0.05);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Manifest Digital Pass Receipt Look */
+        .placeholder-text { 
+            color: var(--text-muted); 
+            font-style: italic; 
+            text-align: center;
+            margin: auto 0;
+            padding: 40px 0;
+        }
+        
+        .receipt { 
+            background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+            border: 2px dashed var(--success); 
+            padding: 25px; 
+            border-radius: 14px; 
+            margin-top: 10px; 
+            display: none; 
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        .receipt-title { 
+            font-weight: bold; 
+            color: #166534; 
+            border-bottom: 2px solid #bbf7d0; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px; 
+            font-size: 15px; 
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .receipt-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 12px; 
+            font-size: 14px; 
+        }
+
+        .receipt-row strong { color: var(--primary); }
+        .receipt-row span { color: var(--text-main); }
+
+        /* Keyframe Animations */
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    
+    <div class="card full-width">
+        <h2>🌐 Cloud Infrastructure Analytics Panel</h2>
+        <div class="metric-grid">
+            <div class="metric-box">
+                <div class="metric-title">Simulated Traffic</div>
+                <div class="metric-val" id="trafficVal">{{ metrics.traffic }} req/m</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-title">Active Server Containers</div>
+                <div class="metric-val" id="serverVal" style="color: var(--accent);">{{ metrics.servers }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-title">Anti-Fraud Pricing</div>
+                <div class="metric-val" style="color: var(--success);">SECURE LOCKED</div>
+            </div>
+        </div>
+        <div class="status-container">
+            <span class="pulse-dot" id="statusDot"></span>
+            <span id="cloudStatus"><strong>System Status:</strong> {{ metrics.status }}</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div>
+            <h2>🎫 Terminal Access Gateway</h2>
+            
+            <label for="passName">Passenger Legal Name</label>
+            <input type="text" id="passName" placeholder="Enter traveler legal name...">
+
+            <label for="passRoute">Target Transit Route Matrix</label>
+            <select id="passRoute">
+                <option value="">-- Select Transit Destination Route --</option>
+                {% for route, price in routes.items() %}
+                    <option value="{{ route }}">{{ route }} — (${{ "%.2f"|format(price) }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button onclick="processCloudBooking()">Authorize Transaction Asset</button>
+    </div>
+
+    <div class="card">
+        <h2>🔒 Cryptographic Manifest Verification</h2>
+        
+        <p id="placeholderText" class="placeholder-text">
+            Awaiting parameters... Complete the workspace terminal action sequence to provision live verified travel assets.
+        </p>
+        
+        <div class="receipt" id="receiptBlock">
+            <div class="receipt-title">✓ Transaction Cryptographically Verified</div>
+            <div class="receipt-row"><strong>Secure ID Token:</strong> <span id="recId" style="color: var(--accent); font-weight: bold; font-family: monospace;"></span></div>
+            <div class="receipt-row"><strong>Holder Identity:</strong> <span id="recName"></span></div>
+            <div class="receipt-row"><strong>Assigned Route Link:</strong> <span id="recRoute"></span></div>
+            <div class="receipt-row"><strong>Verified Rate Tariff:</strong> <span id="recPrice" style="font-weight: bold; color: var(--success);"></span></div>
+            <div class="receipt-row"><strong>Compute Compute Delay:</strong> <span id="recLatency" style="font-weight: bold; font-family: monospace;"></span></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    async function processCloudBooking() {
+        const nameVal = document.getElementById('passName').value.trim();
+        const routeVal = document.getElementById('passRoute').value;
+
+        if(!nameVal || !routeVal) {
+            alert("Matrix Configuration Missing: Please declare identity and route parameters.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/book_pass', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nameVal, route: routeVal })
+            });
+            const data = await response.json();
+
+            if(data.success) {
+                // Hide information placeholder, display modern ticket block smoothly
+                document.getElementById('placeholderText').style.display = 'none';
+                document.getElementById('receiptBlock').style.display = 'block';
+
+                document.getElementById('recId').innerText = data.ticket_id;
+                document.getElementById('recName').innerText = nameVal;
+                document.getElementById('recRoute').innerText = routeVal;
+                document.getElementById('recPrice').innerText = "$" + data.price.toFixed(2);
+                document.getElementById('recLatency').innerText = data.latency;
+                
+                // Update elastic cloud monitoring indicators live
+                document.getElementById('cloudStatus').innerHTML = `<strong>System Status:</strong> ${data.scale_status}`;
+                
+                const serverElement = document.getElementById('serverVal');
+                const dotElement = document.getElementById('statusDot');
+                
+                if(data.scale_status.includes("Autoscale")) {
+                    serverElement.innerText = "3 Resource Nodes";
+                    serverElement.style.color = '#f59e0b';
+                    dotElement.style.backgroundColor = '#f59e0b';
+                } else {
+                    serverElement.innerText = "1 Resource Node";
+                    serverElement.style.color = '#0284c7';
+                    dotElement.style.backgroundColor = '#10b981';
+                }
+            }
+        } catch (error) {
+            alert("Network Tracking Exception: Remote API pipeline dropped transaction sequence.");
+        }
+    }
+</script>
+</body>
+</html>
