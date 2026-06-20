@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud-Native SQL Injection Leak Prevention System</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --accent-blue: #38bdf8;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --text-light: #f8fafc;
+            --border-color: rgba(255,255,255,0.1);
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg-gradient); 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 1050px;
+            max-width: 95%;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 25px;
+        }
+
+        @media(max-width: 850px) { .container { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        h1, h2 { margin: 0; color: #fff; font-weight: 700; letter-spacing: -0.5px; }
+        h1 { font-size: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        h2 { font-size: 18px; color: var(--accent-blue); }
+
+        .system-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; }
+        
+        input { 
+            width: 100%; padding: 14px; background: rgba(15, 23, 42, 0.6); 
+            border: 1px solid var(--border-color); border-radius: 10px; 
+            box-sizing: border-box; color: #fff; font-size: 14px; outline: none;
+            transition: border 0.2s;
+        }
+        input:focus { border-color: var(--accent-blue); }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        btn {
+            padding: 14px; border-radius: 10px; border: none; font-weight: 700;
+            font-size: 14px; cursor: pointer; text-align: center; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-secure { background: var(--accent-green); color: #fff; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3); }
+        .btn-secure:hover { background: #059669; transform: translateY(-1px); }
+        .btn-bypass { background: var(--accent-red); color: #fff; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3); }
+        .btn-bypass:hover { background: #dc2626; transform: translateY(-1px); }
+
+        .console-box {
+            background: #020617; border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 15px; font-family: 'Courier New', monospace;
+            font-size: 13px; color: #cbd5e1; overflow-x: auto; min-height: 45px; display: flex; align-items: center;
+        }
+
+        .payload-card {
+            background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color);
+            border-radius: 10px; padding: 15px; font-size: 13px; color: #94a3b8;
+        }
+
+        .payload-token {
+            background: rgba(239, 68, 68, 0.1); color: var(--accent-red);
+            padding: 2px 6px; border-radius: 4px; font-family: monospace; font-weight: 600;
+        }
+
+        /* Result Cards rendering output profiles */
+        .results-scroll { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; max-height: 380px; }
+        .user-card {
+            background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; border-left: 4px solid var(--accent-blue);
+            animation: fadeIn 0.3s ease forwards;
+        }
+        .user-card.breached { border-left-color: var(--accent-red); }
+
+        .meta-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+        .meta-val { font-family: monospace; font-weight: 600; }
+        
+        .crypto-block {
+            background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px;
+            font-size: 12px; display: flex; flex-direction: column; gap: 4px; margin-top: 8px;
+        }
+        .crypto-lbl { text-transform: uppercase; font-size: 10px; font-weight: 700; color: #64748b; }
+        .crypto-str { font-family: monospace; word-break: break-all; color: #94a3b8; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="panel full-width">
+        <h1>🔒 Mitigating Cloud Data Leaks via Double-Layer Security Protocol</h1>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: #94a3b8;">
+            <div>• Cryptographic Core: <span style="color: var(--accent-green); font-weight: 700;">AES-256-CBC Active</span></div>
+            <div>• Vulnerability Defense: <span style="color: var(--accent-blue); font-weight: 700;">SQL Parameterization Isolation</span></div>
+            <div>• Database Status: <span style="color: #fff;">sqlite_vault_verified</span></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Gateway Controller Terminal</h2>
+        
+        <div class="input-group">
+            <label for="usernameInput">Target Search Query (Username)</label>
+            <input type="text" id="usernameInput" value="admin" placeholder="Type username or injection payload...">
+        </div>
+
+        <div class="btn-grid">
+            <div class="btn-secure" style="padding:14px; border-radius:10px; cursor:pointer; text-align:center; font-weight:700;" onclick="dispatchQuery('secure')">Secure Execution</div>
+            <div class="btn-bypass" style="padding:14px; border-radius:10px; cursor:pointer; text-align:center; font-weight:700;" onclick="dispatchQuery('vulnerable')">Bypass Isolation</div>
+        </div>
+
+        <div class="input-group">
+            <label>Evaluated SQL Statement Engine Text</label>
+            <div class="console-box" id="sqlConsole">SELECT username, encrypted_email FROM vault_users WHERE username = ?</div>
+        </div>
+
+        <div class="payload-card">
+            <strong>💡 Testing Injection Vulnerability:</strong><br><br>
+            Paste this custom malicious string into the search bar and hit <b>Bypass Isolation</b> to leak records: <br>
+            <span class="payload-token">' OR '1'='1</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Vault Records Extraction Manifest</h2>
+            <span class="system-badge" id="modeBadge">Idle Ready</span>
+        </div>
+
+        <div class="results-scroll" id="resultsContainer">
+            <div style="color: #64748b; text-align: center; font-style: italic; margin-top: 40px;">
+                Execute a transaction gateway search query to extract profile diagnostics.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    async function dispatchQuery(selectedMode) {
+        const queryVal = document.getElementById('usernameInput').value.trim();
+        const badge = document.getElementById('modeBadge');
+        
+        if(!queryVal) {
+            alert("Execution parameters are empty.");
+            return;
+        }
+
+        if(selectedMode === 'secure') {
+            badge.innerText = "Secure Parameterized Protocol";
+            badge.style.backgroundColor = "rgba(16, 185, 129, 0.15)";
+            badge.style.color = "var(--accent-green)";
+        } else {
+            badge.innerText = "Unsafe Direct String Concat";
+            badge.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+            badge.style.color = "var(--accent-red)";
+        }
+
+        try {
+            const response = await fetch('/query_vault', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: queryVal, mode: selectedMode })
+            });
+            const data = await response.json();
+
+            document.getElementById('sqlConsole').innerText = data.query;
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = "";
+
+            if (!data.success && data.database_error) {
+                container.innerHTML = `<div style="color: var(--accent-red); font-family: monospace; padding: 15px; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); border-radius: 8px;">
+                    ⚠️ Database Query Runtime Syntax Error Exception:<br><br>${data.database_error}
+                </div>`;
+                return;
+            }
+
+            if(data.results.length === 0) {
+                container.innerHTML = `<div style="color: #64748b; text-align: center; font-style: italic; padding: 40px 0;">No corresponding user entity structural footprints matched the evaluation constraints.</div>`;
+                return;
+            }
+
+            data.results.forEach(row => {
+                const card = document.createElement('div');
+                // Flag card as breached visually if standard malicious criteria are drawn
+                card.className = `user-card ${selectedMode === 'vulnerable' && queryVal.includes("'") ? 'breached' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="meta-row">
+                        <strong>User Handle Identity:</strong>
+                        <span class="meta-val" style="color: var(--accent-blue); font-size:15px;">${row.username}</span>
+                    </div>
+                    
+                    <div class="crypto-block">
+                        <span class="crypto-lbl">Decrypted Email (Decoded Plaintext)</span>
+                        <span class="crypto-str" style="color: #fff; font-weight:600;">${row.decrypted_email}</span>
+                        <span class="crypto-lbl" style="margin-top:5px;">AES-256 Storage Ciphertext Hex Base64</span>
+                        <span class="crypto-str">${row.raw_email}</span>
+                    </div>
+
+                    <div class="crypto-block">
+                        <span class="crypto-lbl">Decrypted Secure Secret Token Asset</span>
+                        <span class="crypto-str" style="color: var(--accent-blue); font-weight:600;">${row.decrypted_secret}</span>
+                        <span class="crypto-lbl" style="margin-top:5px;">AES-256 Storage Ciphertext Hex Base64</span>
+                        <span class="crypto-str">${row.raw_secret}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+        } catch (error) {
+            alert("Remote interface processing channel dropped transaction handshake sync.");
+        }
+    }
+</script>
+</body>
+</html>
